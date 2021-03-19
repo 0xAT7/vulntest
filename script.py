@@ -10,7 +10,7 @@ def readFile(filePath, output):
     with open(filePath, 'r') as file:
         for line in file:
             if '=' in line:
-                patern = re.sub(r'=[a-zA-Z0-9%\-_.+]{0,}', '=FUZZ', line)
+                patern = re.sub(r'=[a-zA-Z0-9%\-_.+:/]{0,}', '=FUZZ', line)
                 print(patern, file=open(output, "a"))
             else:
                 pass
