@@ -87,7 +87,6 @@ def testLFI(url, timeout=10):
     windows = x.replace('FUZZ', "C:/Windows/win.ini")
     try:
         windowsR = requests.get(windows)
-        print(windowsR.url)
         if "[Mail]" in windowsR.text:
             print(Fore.GREEN + '[*] Vulnerable to LFI (Windows) => ' + Fore.YELLOW +url, end='')
         
