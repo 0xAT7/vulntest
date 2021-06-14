@@ -1,9 +1,29 @@
 import concurrent.futures
 import sys
+import argparse
 import requests
 import re
 from colorama import Fore, Style
 import time
+
+# arguments
+parser_arg_menu = argparse.ArgumentParser(prog='tool', formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=40)
+)
+parser_arg_menu.add_argument(
+"-e" , "--endpoints" , help="File contain subdomains Ex: endpoints.txt",
+metavar=""
+)
+
+parser_arg_menu.add_argument(
+"-o", "--output" ,help="Output results in file", 
+metavar=""
+)
+
+arg_menu = parser_arg_menu.parse_args()
+endpoints_file 	= arg_menu.endpoints
+output_file = arg_menu.output
+
+
 
 # Reading givien input file and add =FUZZ then output it.
 def readFile(filePath, output):
@@ -16,7 +36,7 @@ def readFile(filePath, output):
                 pass
 
 
-# Sorting and delete dubplicated lines
+# Sorting and delete duplicated lines
 def sorting(output):
     with open(output) as resultx:
             uniqlines = set(resultx.readlines())
@@ -26,7 +46,7 @@ def sorting(output):
 
 # Threading
 def Thread(vuln):
-    myList = open(sys.argv[2]).readlines()
+    myList = open(output_file).readlines()
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         for url in myList:
@@ -45,21 +65,38 @@ def testSQLI(url, timeout=10):
     if re2 < re1:
         print(Fore.GREEN + '[*] Vulnerable to SQLI => ' + Fore.YELLOW +url, end='')
     else:
-        print(Fore.RED + '[*] Not Vulnerable to SQLI => ' + Fore.BLUE + url, end='')
+        pass
 
 
 def testXSS(url, timeout=10):
-    x = url.replace('FUZZ', '<script>alert("AT7")</script>')
+    x = url.replace('FUZZ', ">bat\"man/<'")
     r = requests.get(x, timeout)
-    if "AT7" in r.text:
+    if ">bat\"man/<'" in r.text:
         print(Fore.GREEN + '[*] Vulnerable to XSS => ' + Fore.YELLOW +url, end='')
     else:
-        print(Fore.RED + '[*] Not Vulnerable to XSS => ' + Fore.BLUE + url, end='')
+        pass
 
+def testLFI(url, timeout=10):
+    linux = url.replace('FUZZ', '../../../../../../../../../../../../../../../../../../../proc/version')
+    linuxR = requests.get(linux, timeout)
+    if "gcc" in linuxR.text:
+        print(Fore.GREEN + '[*] Vulnerable to LFI (Linux) => ' + Fore.YELLOW +url, end='')
+    else:
+        pass
+    x = url
+    windows = x.replace('FUZZ', "C:/Windows/win.ini")
+    try:
+        windowsR = requests.get(windows)
+        print(windowsR.url)
+        if "[Mail]" in windowsR.text:
+            print(Fore.GREEN + '[*] Vulnerable to LFI (Windows) => ' + Fore.YELLOW +url, end='')
+        
+    except Exception as error:
+        print(error)
 
 if __name__=='__main__':
     try:
-        if len(sys.argv) > 2:
+        if arg_menu.endpoints:
             t1 = time.perf_counter()
             
             print(Style.BRIGHT + Fore.RED + '''
@@ -74,8 +111,10 @@ if __name__=='__main__':
 ''')
 
             #Running Functions
-            readFile(sys.argv[1], sys.argv[2])
-            sorting(sys.argv[2])
+            readFile(endpoints_file, output_file)
+            sorting(output_file)
+            print(Fore.CYAN + "[#]Testing LFI[#]")
+            Thread(testLFI)
             print(Fore.CYAN + "[#]Testing SQLI[#]")
             Thread(testSQLI)
             print(Fore.CYAN + "[#]Testing XSS[#]")
@@ -84,6 +123,6 @@ if __name__=='__main__':
             print(f'Total time taken: {t2:0.2f} seconds')
 
         else:
-            print(Fore.YELLOW + '[*] Usage: python3 script.py list.txt output.txt')
+            print(Fore.YELLOW + '[*] Usage: python3 script.py -e endpoints.txt -o output.txt')
     except:
         sys.exit()
